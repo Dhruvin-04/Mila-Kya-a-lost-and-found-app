@@ -1,41 +1,33 @@
-import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
 import { KeeperCard } from '../components/KeeperCard';
 
-// Mock data
-const mockKeepers = [
-  {
-    id: '1',
-    name: 'John Smith',
-    role: 'Campus Security',
-    location: 'Main Building, Room 101',
-    contact: 'security@college.edu',
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    role: 'Student Affairs',
-    location: 'Student Center, Room 205',
-    contact: 'sarah.j@college.edu',
-  },
-  {
-    id: '3',
-    name: 'Mike Davis',
-    role: 'Library Staff',
-    location: 'Library, Front Desk',
-    contact: 'library@college.edu',
-  },
-  {
-    id: '4',
-    name: 'Emily Chen',
-    role: 'Campus Admin',
-    location: 'Administration Building',
-    contact: 'admin@college.edu',
-  },
-];
-
 export const KeepersScreen = ({ navigation }) => {
+  const [keepers, setKeepers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchKeepers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'keepers'));
+        const keepersList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setKeepers(keepersList);
+      } catch (error) {
+        console.error('Error fetching keepers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchKeepers();
+  }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="flex-1">
@@ -50,18 +42,29 @@ export const KeepersScreen = ({ navigation }) => {
         </View>
 
         {/* Keepers List */}
-        <ScrollView className="flex-1 px-4 py-3">
-          {mockKeepers.map((keeper) => (
-            <KeeperCard
-              key={keeper.id}
-              {...keeper}
-              onPress={() => {
-                // Could navigate to keeper details or initiate contact
-                console.log('Contact keeper:', keeper.name);
-              }}
-            />
-          ))}
-        </ScrollView>
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text className="text-gray-500 mt-4">Loading keepers...</Text>
+          </View>
+        ) : keepers.length === 0 ? (
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-gray-500 text-lg">No keepers available</Text>
+            <Text className="text-gray-400 text-sm mt-2">Check back later</Text>
+          </View>
+        ) : (
+          <ScrollView className="flex-1 px-4 py-3">
+            {keepers.map((keeper) => (
+              <KeeperCard
+                key={keeper.id}
+                {...keeper}
+                onPress={() => {
+                  console.log('Contact keeper:', keeper.name);
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );

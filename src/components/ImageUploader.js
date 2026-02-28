@@ -4,10 +4,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { classNames } from '../utils/classNames';
 
-export const ImageUploader = ({ 
-  onImageSelected, 
-  imageUri, 
-  className = '' 
+export const ImageUploader = ({
+  onImageSelected,
+  imageUri,
+  className = ''
 }) => {
   const [image, setImage] = useState(imageUri || null);
 
@@ -32,8 +32,9 @@ export const ImageUploader = ({
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImage(result.assets[0].uri);
-      onImageSelected?.(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImage(uri);
+      onImageSelected?.(uri);
     }
   };
 
@@ -51,8 +52,9 @@ export const ImageUploader = ({
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImage(result.assets[0].uri);
-      onImageSelected?.(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImage(uri);
+      onImageSelected?.(uri);
     }
   };
 
@@ -72,8 +74,8 @@ export const ImageUploader = ({
     <View className={classNames('mb-4', className)}>
       {image ? (
         <View className="relative">
-          <Image 
-            source={{ uri: image }} 
+          <Image
+            source={{ uri: image }}
             className="w-full h-48 rounded-lg"
             resizeMode="cover"
           />

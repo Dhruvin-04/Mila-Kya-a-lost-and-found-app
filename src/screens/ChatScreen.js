@@ -1,34 +1,73 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatBubble } from '../components/ChatBubble';
-
-// Mock messages
-const mockMessages = [
-  { id: '1', message: 'Hi! I think I found your item.', isOwn: false, timestamp: '10:30 AM' },
-  { id: '2', message: 'That\'s great! Can you describe it?', isOwn: true, timestamp: '10:32 AM' },
-  { id: '3', message: 'It\'s a black backpack with a laptop inside.', isOwn: false, timestamp: '10:33 AM' },
-];
+import { getOrCreateChat, subscribeToMessages, sendMessage } from '../services/chatService';
+import { useAuth } from '../context/AuthContext';
 
 export const ChatScreen = ({ route, navigation }) => {
-  const { itemId } = route.params || {};
-  const [messages, setMessages] = useState(mockMessages);
+  const { itemId, otherUserId } = route.params || {};
+  const { user } = useAuth();
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  const [chatId, setChatId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  useEffect(() => {
+    const initChat = async () => {
+      if (!itemId || !user?.uid || !otherUserId) {
+        setLoading(false);
+        return;
+      }
 
-    const newMessage = {
-      id: Date.now().toString(),
-      message: inputText,
-      isOwn: true,
-      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      try {
+        const chat = await getOrCreateChat(itemId, user.uid, otherUserId);
+        setChatId(chat.id);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        Alert.alert('Error', 'Failed to load chat. Please try again.');
+        setLoading(false);
+      }
     };
 
-    setMessages([...messages, newMessage]);
+    initChat();
+  }, [itemId, user?.uid, otherUserId]);
+
+  useEffect(() => {
+    if (!chatId) return;
+
+    const unsubscribe = subscribeToMessages(chatId, (fetchedMessages) => {
+      setMessages(fetchedMessages);
+    });
+
+    return () => unsubscribe();
+  }, [chatId]);
+
+  const handleSend = async () => {
+    if (!inputText.trim() || !chatId) return;
+
+    const messageText = inputText.trim();
     setInputText('');
+
+    try {
+      await sendMessage(chatId, user.uid, messageText);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+      setInputText(messageText); // Restore the message on failure
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-500 mt-4">Loading chat...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -51,11 +90,25 @@ export const ChatScreen = ({ route, navigation }) => {
         </View>
 
         {/* Messages */}
-        <View className="flex-1 px-4 py-4">
-          {messages.map((msg) => (
-            <ChatBubble key={msg.id} {...msg} />
-          ))}
-        </View>
+        <ScrollView className="flex-1 px-4 py-4">
+          {messages.length === 0 ? (
+            <View className="items-center justify-center py-12">
+              <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
+              <Text className="text-gray-400 text-sm mt-4">
+                No messages yet. Start the conversation!
+              </Text>
+            </View>
+          ) : (
+            messages.map((msg) => (
+              <ChatBubble
+                key={msg.id}
+                message={msg.text}
+                isOwn={msg.senderId === user?.uid}
+                timestamp={msg.timestamp}
+              />
+            ))
+          )}
+        </ScrollView>
 
         {/* Input */}
         <View className="bg-white border-t border-gray-200 px-4 py-3 flex-row items-center">

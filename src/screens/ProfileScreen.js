@@ -1,12 +1,34 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components/Button';
+import { useAuth } from '../context/AuthContext';
 
-export const ProfileScreen = ({ navigation }) => {
-  const handleLogout = () => {
-    navigation.replace('Login');
+export const ProfileScreen = () => {
+  const { userProfile, user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation is handled automatically by AuthContext + AppNavigator
+            } catch (error) {
+              console.error('Error logging out:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -19,9 +41,16 @@ export const ProfileScreen = ({ navigation }) => {
               <Ionicons name="person" size={40} color="white" />
             </View>
             <Text className="text-xl font-bold text-gray-900 mb-1">
-              Student Name
+              {userProfile?.name || 'Student'}
             </Text>
-            <Text className="text-gray-600">student@college.edu</Text>
+            <Text className="text-gray-600">
+              {user?.email || 'student@college.edu'}
+            </Text>
+            {userProfile?.college && (
+              <Text className="text-gray-500 text-sm mt-1">
+                {userProfile.college}
+              </Text>
+            )}
           </View>
         </View>
 

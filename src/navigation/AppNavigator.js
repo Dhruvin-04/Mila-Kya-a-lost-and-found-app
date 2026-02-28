@@ -1,8 +1,10 @@
 import React from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 // Screens
 import { LoginScreen } from '../screens/LoginScreen';
@@ -57,8 +59,22 @@ const MainTabs = () => {
   );
 };
 
+// Loading Screen
+const LoadingScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+    <ActivityIndicator size="large" color="#2563eb" />
+    <Text style={{ marginTop: 16, color: '#6b7280', fontSize: 16 }}>Loading...</Text>
+  </View>
+);
+
 // Root Stack Navigator
 export const AppNavigator = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -66,32 +82,37 @@ export const AppNavigator = () => {
           headerShown: false,
         }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen 
-          name="ItemDetails" 
-          component={ItemDetailsScreen}
-          options={{
-            headerShown: true,
-            headerTitle: 'Item Details',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen 
-          name="Chat" 
-          component={ChatScreen}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen 
-          name="QRScanner" 
-          component={QRScannerScreen}
-          options={{
-            headerShown: false,
-            presentation: 'fullScreenModal',
-          }}
-        />
+        {!user ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen
+              name="ItemDetails"
+              component={ItemDetailsScreen}
+              options={{
+                headerShown: true,
+                headerTitle: 'Item Details',
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="Chat"
+              component={ChatScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="QRScanner"
+              component={QRScannerScreen}
+              options={{
+                headerShown: false,
+                presentation: 'fullScreenModal',
+              }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
