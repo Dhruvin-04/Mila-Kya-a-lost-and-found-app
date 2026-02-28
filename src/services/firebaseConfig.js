@@ -1,8 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
     apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -16,12 +17,26 @@ const firebaseConfig = {
 let app;
 let auth;
 
+const initializeFirebaseAuth = (firebaseApp) => {
+    if (Platform.OS === 'web') {
+        return getAuth(firebaseApp);
+    }
+
+    try {
+        const { getReactNativePersistence } = require('firebase/auth/react-native');
+        return initializeAuth(firebaseApp, {
+            persistence: getReactNativePersistence(AsyncStorage),
+        });
+    } catch (error) {
+        console.warn('Falling back to default Firebase Auth initialization:', error?.message || error);
+        return getAuth(firebaseApp);
+    }
+};
+
 // Check if app is already initialized to prevent errors during Fast Refresh in Expo
 if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
-    auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage),
-    });
+    auth = initializeFirebaseAuth(app);
 } else {
     app = getApp();
     auth = getAuth(app);
