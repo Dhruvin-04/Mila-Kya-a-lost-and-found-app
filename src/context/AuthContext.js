@@ -5,6 +5,7 @@ import {
     loginUser,
     registerUser,
     logoutUser,
+    updateUserProfilePhoto,
 } from '../services/authService';
 
 const AuthContext = createContext(null);
@@ -64,6 +65,19 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(null);
     };
 
+    const updateProfilePhoto = async (imageUri) => {
+        if (!user?.uid) {
+            throw new Error('User not authenticated.');
+        }
+
+        const profileImageUrl = await updateUserProfilePhoto(user.uid, imageUri);
+        setUserProfile((prev) => ({
+            ...(prev || {}),
+            profileImageUrl,
+        }));
+        return profileImageUrl;
+    };
+
     const value = {
         user,
         userProfile,
@@ -71,6 +85,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        updateProfilePhoto,
     };
 
     return (

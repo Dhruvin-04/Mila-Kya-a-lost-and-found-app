@@ -4,8 +4,9 @@ import {
     signOut,
     onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
+import { uploadImageToCloudinary } from './cloudinaryService';
 
 /**
  * Validates that the email ends with .edu
@@ -76,4 +77,18 @@ export const getUserProfile = async (uid) => {
         return { id: docSnap.id, ...docSnap.data() };
     }
     return null;
+};
+
+/**
+ * Upload and update user's profile photo URL in Firestore
+ */
+export const updateUserProfilePhoto = async (uid, imageUri) => {
+    const profileImageUrl = await uploadImageToCloudinary(imageUri, { folder: 'foundit/profiles' });
+
+    await updateDoc(doc(db, 'users', uid), {
+        profileImageUrl,
+        updatedAt: serverTimestamp(),
+    });
+
+    return profileImageUrl;
 };

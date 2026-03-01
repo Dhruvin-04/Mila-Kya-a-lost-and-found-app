@@ -9,7 +9,8 @@ import {
     serverTimestamp,
 } from 'firebase/firestore';
 
-import { db, storage } from './firebaseConfig';
+import { db } from './firebaseConfig';
+import { uploadImageToCloudinary } from './cloudinaryService';
 
 /**
  * Subscribe to items collection with real-time updates
@@ -53,50 +54,7 @@ export const getItemById = async (itemId) => {
  * Accepts the local image URI from ImagePicker.
  */
 export const uploadImage = async (imageUri) => {
-    try {
-        // TODO: Replace with your actual Cloudinary details
-        // You can find these in your Cloudinary Dashboard under Settings -> Upload
-        const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME';
-        const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UNSIGNED_UPLOAD_PRESET';
-
-        // Create form data for the upload
-        const data = new FormData();
-
-        // Extract filename from the URI
-        const filename = imageUri.substring(imageUri.lastIndexOf('/') + 1);
-
-        // In React Native, append a file to FormData with this specific structure
-        data.append('file', {
-            uri: imageUri,
-            type: 'image/jpeg',
-            name: filename || 'upload.jpg',
-        });
-
-        data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        // Optional: you can specify a folder name
-        // data.append('folder', 'foundit_items'); 
-
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: data,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        const result = await response.json();
-
-        if (result.secure_url) {
-            return result.secure_url; // Return the Cloudinary URL
-        } else {
-            console.error('Cloudinary upload error payload:', result);
-            throw new Error(result.error?.message || 'Failed to upload image to Cloudinary');
-        }
-    } catch (error) {
-        console.error('Exception uploading to Cloudinary:', error.message);
-        throw error;
-    }
+    return uploadImageToCloudinary(imageUri, { folder: 'foundit/items' });
 };
 
 /**
